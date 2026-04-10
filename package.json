@@ -1,7 +1,7 @@
 {
   "name": "wuepa-jewerly-backend",
   "version": "0.1.0",
-  "description": "Backend para Wuepa Jewerly con Express y TypeScript",
+  "description": "Backend para Wuepa Jewerly con node.js, Express y TypeScript",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --exec tsx api/index.ts",
