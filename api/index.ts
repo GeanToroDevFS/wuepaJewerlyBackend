@@ -16,7 +16,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import express from 'express';
-import corsMiddleware from './middlewares/corsMiddleware';
+import { corsMiddleware } from './middlewares/corsMiddleware';
 
 // 🔥 Importa Firebase para forzar inicialización
 import './config/firebase';
