@@ -1,17 +1,26 @@
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
+import * as admin from 'firebase-admin';
+import dotenv from 'dotenv';
 
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  });
+dotenv.config();
+
+let serviceAccount: admin.ServiceAccount;
+
+try {
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!);
+  console.log('✅ Firebase service account cargado');
+} catch (error) {
+  console.error('❌ Error parseando FIREBASE_SERVICE_ACCOUNT_KEY');
+  throw new Error('JSON inválido en FIREBASE_SERVICE_ACCOUNT_KEY');
 }
 
-export const auth = getAuth();
-export const db = getFirestore();
-export default { auth, db };
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    projectId: process.env.FIREBASE_PROJECT_ID,
+  });
+
+  console.log('🚀 Firebase inicializado');
+}
+
+export const auth = admin.auth();
+export const db = admin.firestore();
