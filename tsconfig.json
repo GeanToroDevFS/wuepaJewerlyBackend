@@ -13,8 +13,7 @@
     "declaration": false,
     "removeComments": true,
     "types": ["node"],
-    "typeRoots": ["./node_modules/@types"],
-    "ignoreDeprecations": "6.0"
+    "typeRoots": ["./node_modules/@types"]
   },
   "include": ["api/**/*.ts"],
   "exclude": ["node_modules", "dist"]
