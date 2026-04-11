@@ -8,6 +8,9 @@
     "build": "tsc",
     "start": "node dist/index.js"
   },
+  "engines": {
+    "node": "22.x"
+  },
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
@@ -17,13 +20,13 @@
     "jsonwebtoken": "^9.0.3",
     "node-fetch": "^3.3.2",
     "sib-api-v3-sdk": "^8.5.0",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.6.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^25.6.0",
     "nodemon": "^3.1.14",
     "typescript": "^6.0.2"
   },
