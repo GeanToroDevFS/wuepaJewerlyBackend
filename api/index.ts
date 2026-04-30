@@ -23,6 +23,7 @@ import './config/firebase';
 
 // 👉 Importa rutas (irás agregando más)
 import authRoutes from './routes/authRoutes';
+import productRoutes from './routes/productRoutes';
 // import userRoutes from './routes/userRoutes';
 // import paymentRoutes from './routes/paymentRoutes';
 
@@ -45,6 +46,7 @@ const PORT = process.env.PORT || 3000;
 * ========================
   */
   app.use('/api/auth', authRoutes);
+  app.use('/api/products', productRoutes);
 
 // futuras rutas
 // app.use('/api/users', userRoutes);
