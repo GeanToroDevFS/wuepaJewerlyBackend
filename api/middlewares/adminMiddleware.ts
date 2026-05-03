@@ -18,7 +18,7 @@ export const adminMiddleware = async (
     }
 
     // 🔥 Consultar usuario en Firestore
-    const userDoc = await db.collection('Usuarios').doc(uid).get();
+    const userDoc = await db.collection('usuarios').doc(uid).get();
 
     if (!userDoc.exists) {
       return res.status(404).json({
