@@ -1,4 +1,5 @@
 import { db } from '../config/firebase';
+import admin from 'firebase-admin';
 import { User } from '../models/User';
 
 export class UserDAO {
@@ -10,7 +11,7 @@ export class UserDAO {
 
     const userToSave: User = {
       ...userData,
-      fechaRegistro: new Date()
+      fechaRegistro: admin.firestore.Timestamp.now()
     };
 
     await userRef.set(userToSave);
