@@ -25,6 +25,7 @@ import './config/firebase';
 import authRoutes from './routes/authRoutes';
 import productRoutes from './routes/productRoutes';
 import userRoutes from './routes/userRoutes';
+import instagramRoutes from './routes/instagramRoutes';
 // import paymentRoutes from './routes/paymentRoutes';
 
 const app = express();
@@ -47,6 +48,7 @@ const PORT = process.env.PORT || 3000;
   */
   app.use('/api/auth', authRoutes);
   app.use('/api/products', productRoutes);
+  app.use('/api/instagram', instagramRoutes);
 
 // futuras rutas
 app.use('/api/users', userRoutes);
