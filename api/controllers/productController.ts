@@ -16,10 +16,24 @@ export const createProduct = async (req: Request, res: Response) => {
       stock
     } = req.body;
 
-    if (!nombre || !precio || !categoria) {
+    if (!nombre || precio === undefined || !categoria) {
       return res.status(400).json({
         success: false,
         message: 'Nombre, precio y categoría son obligatorios'
+      });
+    }
+
+    if (Number(precio) < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Precio inválido'
+      });
+    }
+
+    if (Number(stock) < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Stock inválido'
       });
     }
 
@@ -86,7 +100,27 @@ export const updateProduct = async (req: Request, res: Response) => {
       });
     }
 
-    await db.collection('productos').doc(id).update(req.body);
+    const {
+      nombre,
+      descripcion,
+      precio,
+      categoria,
+      imagenUrl,
+      codigo,
+      stock
+    } = req.body;
+
+    await db.collection('productos')
+      .doc(id)
+      .update({
+        nombre,
+        descripcion,
+        precio: Number(precio),
+        categoria,
+        imagenUrl,
+        codigo,
+        stock: Number(stock)
+      });
 
     return res.json({
       success: true,
