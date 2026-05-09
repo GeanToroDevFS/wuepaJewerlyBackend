@@ -1,49 +1,77 @@
 import { Request, Response } from 'express';
 
+import { db } from '../config/firebase';
+
 import {
-  publishProductToInstagram
+  getInstagramPosts
 } from '../services/instagramService';
 
-export const publishInstagramPost = async (
-  req: Request,
-  res: Response
-) => {
+import {
+  parseInstagramCaption
+} from '../utils/instagramProductParser';
 
-  try {
+export const syncInstagramProducts =
+  async (
+    req: Request,
+    res: Response
+  ) => {
 
-    const {
-      imageUrl,
-      caption
-    } = req.body;
+    try {
 
-    if (!imageUrl || !caption) {
-      return res.status(400).json({
+      const posts =
+        await getInstagramPosts();
+
+      let created = 0;
+
+      for (const post of posts) {
+
+        if (!post.caption) {
+          continue;
+        }
+
+        const parsed =
+          parseInstagramCaption(
+            post.caption
+          );
+
+        const existing =
+          await db.collection('productos')
+            .where('instagramPostId', '==', post.id)
+            .get();
+
+        if (!existing.empty) {
+          continue;
+        }
+
+        await db.collection('productos')
+          .add({
+            nombre: parsed.nombre,
+            descripcion: parsed.descripcion,
+            precio: parsed.precio,
+            stock: parsed.stock,
+            categoria: parsed.categoria,
+            codigo: parsed.codigo,
+            imagenUrl: post.media_url,
+            instagramPostId: post.id,
+            createdAt: new Date(),
+          });
+
+        created++;
+      }
+
+      return res.json({
+        success: true,
+        imported: created,
+      });
+
+    } catch (error) {
+
+      console.error(error);
+
+      return res.status(500).json({
         success: false,
-        message: 'Datos incompletos'
+        message:
+          'Error sincronizando Instagram',
       });
     }
-
-    const result =
-      await publishProductToInstagram(
-        imageUrl,
-        caption
-      );
-
-    return res.json({
-      success: true,
-      result
-    });
-
-  } catch (error) {
-
-    console.error(
-      '❌ [INSTAGRAM CONTROLLER]',
-      error
-    );
-
-    return res.status(500).json({
-      success: false,
-      message: 'Error publicando en Instagram'
-    });
-  }
-};
+  };

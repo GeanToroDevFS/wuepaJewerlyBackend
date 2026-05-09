@@ -1,46 +1,32 @@
 import axios from 'axios';
 
 const ACCESS_TOKEN =
-  process.env.INSTAGRAM_ACCESS_TOKEN;
+  process.env.INSTAGRAM_ACCESS_TOKEN!;
 
 const IG_USER_ID =
-  process.env.IG_USER_ID;
+  process.env.IG_USER_ID!;
 
-export const publishProductToInstagram = async (
-  imageUrl: string,
-  caption: string
-) => {
+export interface InstagramPost {
+  id: string;
+  caption?: string;
+  media_url: string;
+  media_type: string;
+  timestamp: string;
+}
 
-  try {
+export async function getInstagramPosts() {
 
-    const containerResponse = await axios.post(
-      `https://graph.facebook.com/v23.0/${IG_USER_ID}/media`,
-      {
-        image_url: imageUrl,
-        caption,
+  const response = await axios.get(
+    `https://graph.facebook.com/v23.0/${IG_USER_ID}/media`,
+    {
+      params: {
+        fields:
+          'id,caption,media_url,media_type,timestamp',
+
         access_token: ACCESS_TOKEN,
-      }
-    );
+      },
+    }
+  );
 
-    const creationId = containerResponse.data.id;
-
-    const publishResponse = await axios.post(
-      `https://graph.facebook.com/v23.0/${IG_USER_ID}/media_publish`,
-      {
-        creation_id: creationId,
-        access_token: ACCESS_TOKEN,
-      }
-    );
-
-    return publishResponse.data;
-
-  } catch (error) {
-
-    console.error(
-      '❌ [INSTAGRAM SERVICE]',
-      error
-    );
-
-    throw error;
-  }
-};
+  return response.data.data as InstagramPost[];
+}
