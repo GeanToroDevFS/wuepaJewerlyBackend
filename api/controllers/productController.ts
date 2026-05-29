@@ -151,7 +151,17 @@ export const deleteProduct = async (req: Request, res: Response) => {
       });
     }
 
-    await db.collection('productos').doc(id).delete();
+    const productRef = db.collection('productos').doc(id);
+    const productDoc = await productRef.get();
+
+    if (!productDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Producto no encontrado'
+      });
+    }
+
+    await productRef.delete();
 
     return res.json({
       success: true,
