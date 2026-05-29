@@ -6,6 +6,35 @@ type StorageFileReference = {
   filePath: string;
 };
 
+function areSameStorageFile(first: StorageFileReference | null, second: StorageFileReference | null) {
+  return Boolean(
+    first
+    && second
+    && first.bucketName === second.bucketName
+    && first.filePath === second.filePath
+  );
+}
+
+function getStorageFileReferenceFromProductData(productData: FirebaseFirestore.DocumentData | undefined) {
+  if (!productData) {
+    return null;
+  }
+
+  if (
+    typeof productData.imagenBucket === 'string'
+    && productData.imagenBucket.trim()
+    && typeof productData.imagenStoragePath === 'string'
+    && productData.imagenStoragePath.trim()
+  ) {
+    return {
+      bucketName: productData.imagenBucket.trim(),
+      filePath: productData.imagenStoragePath.trim(),
+    };
+  }
+
+  return getStorageFileReferenceFromUrl(productData.imagenUrl);
+}
+
 function getStorageFileReferenceFromUrl(imageUrl: unknown): StorageFileReference | null {
   if (typeof imageUrl !== 'string' || !imageUrl.trim()) {
     return null;
@@ -50,9 +79,7 @@ function getStorageFileReferenceFromUrl(imageUrl: unknown): StorageFileReference
   return null;
 }
 
-async function deleteProductImageFromStorage(imageUrl: unknown) {
-  const fileReference = getStorageFileReferenceFromUrl(imageUrl);
-
+async function deleteProductImageFromStorage(fileReference: StorageFileReference | null) {
   if (!fileReference) {
     return;
   }
@@ -99,12 +126,16 @@ export const createProduct = async (req: Request, res: Response) => {
       });
     }
 
+    const imageFileReference = getStorageFileReferenceFromUrl(imagenUrl);
+
     const docRef = await db.collection('productos').add({
       nombre,
       descripcion: descripcion || '',
       precio: Number(precio),
       categoria,
       imagenUrl: imagenUrl || '',
+      imagenBucket: imageFileReference?.bucketName || '',
+      imagenStoragePath: imageFileReference?.filePath || '',
       codigo: codigo || '',
       stock: Number(stock) || 0
     });
@@ -162,27 +193,64 @@ export const updateProduct = async (req: Request, res: Response) => {
       });
     }
 
-    const {
-      nombre,
-      descripcion,
-      precio,
-      categoria,
-      imagenUrl,
-      codigo,
-      stock
-    } = req.body;
+    const productRef = db.collection('productos').doc(id);
+    const productDoc = await productRef.get();
 
-    await db.collection('productos')
-      .doc(id)
-      .update({
-        nombre,
-        descripcion,
-        precio: Number(precio),
-        categoria,
-        imagenUrl,
-        codigo,
-        stock: Number(stock)
+    if (!productDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Producto no encontrado'
       });
+    }
+
+    const updateData: Record<string, unknown> = {};
+    const productData = productDoc.data();
+
+    if ('nombre' in req.body) updateData.nombre = req.body.nombre;
+    if ('descripcion' in req.body) updateData.descripcion = req.body.descripcion || '';
+    if ('categoria' in req.body) updateData.categoria = req.body.categoria;
+    if ('codigo' in req.body) updateData.codigo = req.body.codigo || '';
+
+    if ('precio' in req.body) {
+      const nextPrice = Number(req.body.precio);
+
+      if (nextPrice < 0 || Number.isNaN(nextPrice)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Precio invÃ¡lido'
+        });
+      }
+
+      updateData.precio = nextPrice;
+    }
+
+    if ('stock' in req.body) {
+      const nextStock = Number(req.body.stock);
+
+      if (nextStock < 0 || Number.isNaN(nextStock)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Stock invÃ¡lido'
+        });
+      }
+
+      updateData.stock = nextStock;
+    }
+
+    if ('imagenUrl' in req.body) {
+      const oldImageFileReference = getStorageFileReferenceFromProductData(productData);
+      const nextImageFileReference = getStorageFileReferenceFromUrl(req.body.imagenUrl);
+
+      updateData.imagenUrl = req.body.imagenUrl || '';
+      updateData.imagenBucket = nextImageFileReference?.bucketName || '';
+      updateData.imagenStoragePath = nextImageFileReference?.filePath || '';
+
+      if (!areSameStorageFile(oldImageFileReference, nextImageFileReference)) {
+        await deleteProductImageFromStorage(oldImageFileReference);
+      }
+    }
+
+    await productRef.update(updateData);
 
     return res.json({
       success: true,
@@ -225,7 +293,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
 
     const productData = productDoc.data();
 
-    await deleteProductImageFromStorage(productData?.imagenUrl);
+    await deleteProductImageFromStorage(getStorageFileReferenceFromProductData(productData));
     await productRef.delete();
 
     return res.json({
