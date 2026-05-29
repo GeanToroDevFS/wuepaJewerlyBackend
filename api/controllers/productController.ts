@@ -1,5 +1,67 @@
 import { Request, Response } from 'express';
-import { db } from '../config/firebase';
+import { db, storage } from '../config/firebase';
+
+type StorageFileReference = {
+  bucketName: string;
+  filePath: string;
+};
+
+function getStorageFileReferenceFromUrl(imageUrl: unknown): StorageFileReference | null {
+  if (typeof imageUrl !== 'string' || !imageUrl.trim()) {
+    return null;
+  }
+
+  const normalizedUrl = imageUrl.trim();
+
+  if (normalizedUrl.startsWith('gs://')) {
+    const withoutProtocol = normalizedUrl.replace('gs://', '');
+    const [bucketName, ...pathParts] = withoutProtocol.split('/');
+    const filePath = pathParts.join('/');
+
+    return bucketName && filePath ? { bucketName, filePath } : null;
+  }
+
+  try {
+    const url = new URL(normalizedUrl);
+
+    if (url.hostname === 'firebasestorage.googleapis.com') {
+      const match = url.pathname.match(/^\/v0\/b\/([^/]+)\/o\/(.+)$/);
+
+      if (!match) {
+        return null;
+      }
+
+      return {
+        bucketName: decodeURIComponent(match[1]),
+        filePath: decodeURIComponent(match[2]),
+      };
+    }
+
+    if (url.hostname === 'storage.googleapis.com') {
+      const [, bucketName, ...pathParts] = url.pathname.split('/');
+      const filePath = pathParts.join('/');
+
+      return bucketName && filePath ? { bucketName, filePath: decodeURIComponent(filePath) } : null;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+async function deleteProductImageFromStorage(imageUrl: unknown) {
+  const fileReference = getStorageFileReferenceFromUrl(imageUrl);
+
+  if (!fileReference) {
+    return;
+  }
+
+  await storage
+    .bucket(fileReference.bucketName)
+    .file(fileReference.filePath)
+    .delete({ ignoreNotFound: true });
+}
 
 /**
  * ✅ Crear producto (ADMIN)
@@ -161,6 +223,9 @@ export const deleteProduct = async (req: Request, res: Response) => {
       });
     }
 
+    const productData = productDoc.data();
+
+    await deleteProductImageFromStorage(productData?.imagenUrl);
     await productRef.delete();
 
     return res.json({
