@@ -57,17 +57,17 @@ export function parseInstagramCaption(
     precio:
       precioMatch
         ? Number(precioMatch[1])
-        : 0,
+        : null,
 
     stock:
       stockMatch
         ? Number(stockMatch[1])
-        : 0,
+        : null,
 
     categoria:
       categoriaMatch
         ? categoriaMatch[1].toLowerCase()
-        : 'collares',
+        : null,
 
     codigo:
       codigoMatch

@@ -34,6 +34,11 @@ export const syncInstagramProducts =
             post.caption
           );
 
+        const isComplete =
+          parsed.precio !== null &&
+          parsed.stock !== null &&
+          parsed.categoria !== null;
+
         const existing =
           await db.collection('productos')
             .where('instagramPostId', '==', post.id)
@@ -53,9 +58,14 @@ export const syncInstagramProducts =
             codigo: parsed.codigo,
             imagenUrl: post.media_url,
             instagramPostId: post.id,
+            origen: 'instagram',
+            estado:
+              isComplete
+                ? 'publicado'
+                : 'pendiente',
+
             createdAt: new Date(),
           });
-
         created++;
       }
 

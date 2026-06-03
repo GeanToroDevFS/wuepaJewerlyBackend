@@ -102,7 +102,9 @@ export const createProduct = async (req: Request, res: Response) => {
       categoria,
       imagenUrl,
       codigo,
-      stock
+      stock,
+      estado,
+      origen
     } = req.body;
 
     if (!nombre || precio === undefined || !categoria) {
@@ -137,7 +139,10 @@ export const createProduct = async (req: Request, res: Response) => {
       imagenBucket: imageFileReference?.bucketName || '',
       imagenStoragePath: imageFileReference?.filePath || '',
       codigo: codigo || '',
-      stock: Number(stock) || 0
+      stock: Number(stock) || 0,
+      estado: estado || 'publicado',
+      origen: origen || 'manual',
+      createdAt: new Date()
     });
 
     return res.status(201).json({
@@ -210,6 +215,8 @@ export const updateProduct = async (req: Request, res: Response) => {
     if ('descripcion' in req.body) updateData.descripcion = req.body.descripcion || '';
     if ('categoria' in req.body) updateData.categoria = req.body.categoria;
     if ('codigo' in req.body) updateData.codigo = req.body.codigo || '';
+    if ('estado' in req.body) updateData.estado = req.body.estado;
+    if ('origen' in req.body) updateData.origen = req.body.origen;
 
     if ('precio' in req.body) {
       const nextPrice = Number(req.body.precio);
