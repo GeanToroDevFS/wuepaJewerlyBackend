@@ -26,6 +26,7 @@ import authRoutes from './routes/authRoutes';
 import productRoutes from './routes/productRoutes';
 import userRoutes from './routes/userRoutes';
 import instagramRoutes from './routes/instagramRoutes';
+import orderRoutes from './routes/orderRoutes';
 // import paymentRoutes from './routes/paymentRoutes';
 
 const app = express();
@@ -49,6 +50,7 @@ const PORT = process.env.PORT || 3000;
   app.use('/api/auth', authRoutes);
   app.use('/api/products', productRoutes);
   app.use('/api/instagram', instagramRoutes);
+  app.use('/api/orders', orderRoutes);
 
 // futuras rutas
 app.use('/api/users', userRoutes);
