@@ -5,17 +5,33 @@ import { OrderService } from '../services/orderService';
 
 const validStatuses: OrderStatus[] = ['Pendiente', 'Pagado', 'Cancelado'];
 
-function isValidCustomerData(data: unknown): data is OrderCustomerData {
+function normalizeCustomerData(data: unknown): OrderCustomerData | null {
   if (!data || typeof data !== 'object') {
-    return false;
+    return null;
   }
 
   const customerData = data as Partial<OrderCustomerData>;
+  const normalizedData = {
+    nombre: typeof customerData.nombre === 'string' ? customerData.nombre.trim() : '',
+    correo: typeof customerData.correo === 'string' ? customerData.correo.trim() : '',
+    telefono: typeof customerData.telefono === 'string' ? customerData.telefono.trim() : '',
+    direccion: typeof customerData.direccion === 'string' ? customerData.direccion.trim() : '',
+  };
+  const phoneDigits = normalizedData.telefono.replace(/\D/g, '');
 
-  return typeof customerData.nombre === 'string'
-    && typeof customerData.correo === 'string'
-    && typeof customerData.telefono === 'string'
-    && typeof customerData.direccion === 'string';
+  if (!normalizedData.nombre || !normalizedData.telefono || !normalizedData.direccion) {
+    return null;
+  }
+
+  if (phoneDigits.length < 7 || phoneDigits.length > 15) {
+    return null;
+  }
+
+  if (normalizedData.direccion.length < 5) {
+    return null;
+  }
+
+  return normalizedData;
 }
 
 export const createOrder = async (req: AuthRequest, res: Response) => {
@@ -38,17 +54,19 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    if (!isValidCustomerData(clienteData)) {
+    const normalizedCustomerData = normalizeCustomerData(clienteData);
+
+    if (!normalizedCustomerData) {
       return res.status(400).json({
         success: false,
-        message: 'Datos del cliente incompletos',
+        message: 'Debes ingresar un telefono y una direccion validos',
       });
     }
 
     const order = await OrderService.createOrder({
       clienteId: uid,
       productos,
-      clienteData,
+      clienteData: normalizedCustomerData,
     });
 
     return res.status(201).json({

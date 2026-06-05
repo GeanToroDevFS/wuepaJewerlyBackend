@@ -11,6 +11,16 @@ interface CreateOrderInput {
 
 export class OrderService {
   static async createOrder(input: CreateOrderInput): Promise<Order> {
+    const phoneDigits = input.clienteData.telefono.replace(/\D/g, '');
+
+    if (!input.clienteData.nombre.trim() || !input.clienteData.telefono.trim() || !input.clienteData.direccion.trim()) {
+      throw new Error('Debes ingresar los datos obligatorios del cliente');
+    }
+
+    if (phoneDigits.length < 7 || phoneDigits.length > 15 || input.clienteData.direccion.trim().length < 5) {
+      throw new Error('Los datos del cliente no son validos');
+    }
+
     if (!input.productos || input.productos.length === 0) {
       throw new Error('El pedido debe incluir al menos un producto');
     }
