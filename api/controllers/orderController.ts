@@ -4,7 +4,7 @@ import { OrderCustomerData, OrderStatus } from '../models/Order';
 import { OrderService } from '../services/orderService';
 
 const validStatuses: OrderStatus[] = ['Pendiente', 'Pagado', 'Cancelado'];
-const COLOMBIAN_MOBILE_PATTERN = /^3\d{9}$/;
+const INTERNATIONAL_PHONE_PATTERN = /^\+?[0-9\s()-]+$/;
 const ADDRESS_PATTERN = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9\s#.,°/-]+$/;
 
 function normalizeCustomerData(data: unknown): OrderCustomerData | null {
@@ -26,7 +26,9 @@ function normalizeCustomerData(data: unknown): OrderCustomerData | null {
   }
 
   if (
-    !COLOMBIAN_MOBILE_PATTERN.test(phoneDigits)
+    !INTERNATIONAL_PHONE_PATTERN.test(normalizedData.telefono)
+    || phoneDigits.length < 7
+    || phoneDigits.length > 15
     || normalizedData.direccion.length < 8
     || normalizedData.direccion.length > 120
     || !ADDRESS_PATTERN.test(normalizedData.direccion)
@@ -35,7 +37,7 @@ function normalizeCustomerData(data: unknown): OrderCustomerData | null {
     return null;
   }
 
-  return { ...normalizedData, telefono: phoneDigits };
+  return normalizedData;
 }
 
 export const createOrder = async (req: AuthRequest, res: Response) => {

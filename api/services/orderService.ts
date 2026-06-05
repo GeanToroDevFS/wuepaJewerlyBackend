@@ -3,7 +3,7 @@ import { db } from '../config/firebase';
 import { OrderDAO } from '../dao/OrderDAO';
 import { Order, OrderCustomerData, OrderItem, OrderStatus } from '../models/Order';
 
-const COLOMBIAN_MOBILE_PATTERN = /^3\d{9}$/;
+const INTERNATIONAL_PHONE_PATTERN = /^\+?[0-9\s()-]+$/;
 const ADDRESS_PATTERN = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9\s#.,°/-]+$/;
 
 interface CreateOrderInput {
@@ -22,8 +22,12 @@ export class OrderService {
 
     const address = input.clienteData.direccion.trim();
 
-    if (!COLOMBIAN_MOBILE_PATTERN.test(phoneDigits)) {
-      throw new Error('El celular debe tener 10 numeros y comenzar por 3.');
+    if (
+      !INTERNATIONAL_PHONE_PATTERN.test(input.clienteData.telefono.trim())
+      || phoneDigits.length < 7
+      || phoneDigits.length > 15
+    ) {
+      throw new Error('El telefono debe incluir entre 7 y 15 numeros y puede usar un prefijo internacional.');
     }
 
     if (
@@ -92,7 +96,7 @@ export class OrderService {
       clienteData: {
         nombre: input.clienteData.nombre.trim(),
         correo: input.clienteData.correo.trim(),
-        telefono: phoneDigits,
+        telefono: input.clienteData.telefono.trim(),
         direccion: address,
       },
     });
