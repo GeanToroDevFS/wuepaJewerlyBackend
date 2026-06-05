@@ -1,0 +1,39 @@
+{
+  "name": "wuepa-jewerly-backend",
+  "version": "0.1.0",
+  "description": "Backend para Wuepa Jewerly con node.js, Express y TypeScript",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon --exec tsx api/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.6.2",
+    "axios": "^1.16.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
+    "express": "^5.2.1",
+    "firebase": "^12.13.0",
+    "firebase-admin": "^13.9.0",
+    "jsonwebtoken": "^9.0.3",
+    "node-fetch": "^3.3.2",
+    "sib-api-v3-sdk": "^8.5.0",
+    "tsx": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/jsonwebtoken": "^9.0.10",
+    "nodemon": "^3.1.14",
+    "typescript": "^6.0.2"
+  },
+  "keywords": [
+    "api"
+  ],
+  "author": "Gean Franco Muñoz Toro",
+  "license": "MIT"
+}
