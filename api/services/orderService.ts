@@ -124,6 +124,11 @@ export class OrderService {
 
         const productData = productDoc.data() || {};
         const currentStock = Number(productData.stock || 0);
+
+        if (currentStock < item.cantidad) {
+          throw new Error(`No hay suficientes unidades de ${item.nombre}. Revisa el inventario antes de aceptar el pago.`);
+        }
+
         const nextStock = Math.max(0, currentStock - item.cantidad);
 
         productUpdates.push({ productRef, nextStock });
