@@ -3,6 +3,9 @@ import { db } from '../config/firebase';
 import { OrderDAO } from '../dao/OrderDAO';
 import { Order, OrderCustomerData, OrderItem, OrderStatus } from '../models/Order';
 
+const COLOMBIAN_MOBILE_PATTERN = /^3\d{9}$/;
+const ADDRESS_PATTERN = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9\s#.,°/-]+$/;
+
 interface CreateOrderInput {
   clienteId: string;
   productos: Array<{ id: string; cantidad: number }>;
@@ -17,8 +20,19 @@ export class OrderService {
       throw new Error('Escribe tu telefono y direccion para poder continuar con el pedido.');
     }
 
-    if (phoneDigits.length < 7 || phoneDigits.length > 15 || input.clienteData.direccion.trim().length < 5) {
-      throw new Error('Revisa tu telefono y direccion. Necesitamos esos datos completos para coordinar la entrega.');
+    const address = input.clienteData.direccion.trim();
+
+    if (!COLOMBIAN_MOBILE_PATTERN.test(phoneDigits)) {
+      throw new Error('El celular debe tener 10 numeros y comenzar por 3.');
+    }
+
+    if (
+      address.length < 8
+      || address.length > 120
+      || !ADDRESS_PATTERN.test(address)
+      || !/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(address)
+    ) {
+      throw new Error('Escribe una direccion valida de entre 8 y 120 caracteres.');
     }
 
     if (!input.productos || input.productos.length === 0) {
@@ -78,8 +92,8 @@ export class OrderService {
       clienteData: {
         nombre: input.clienteData.nombre.trim(),
         correo: input.clienteData.correo.trim(),
-        telefono: input.clienteData.telefono.trim(),
-        direccion: input.clienteData.direccion.trim(),
+        telefono: phoneDigits,
+        direccion: address,
       },
     });
   }

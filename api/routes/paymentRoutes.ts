@@ -6,6 +6,6 @@ import { authMiddleware } from '../middlewares/authMiddleware';
 const router = Router();
 
 router.post('/pay', authMiddleware, adminMiddleware, markOrderPaid);
-router.post('/webhook', paymentWebhook);
+router.post('/webhook', authMiddleware, adminMiddleware, paymentWebhook);
 
 export default router;
