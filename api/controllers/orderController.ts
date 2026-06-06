@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middlewares/authMiddleware';
 import { OrderCustomerData, OrderStatus } from '../models/Order';
 import { OrderService } from '../services/orderService';
+import { db } from '../config/firebase';
 
 const validStatuses: OrderStatus[] = ['Pendiente', 'Pagado', 'Cancelado'];
 const INTERNATIONAL_PHONE_PATTERN = /^\+?[0-9\s()-]+$/;
@@ -74,6 +75,8 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       productos,
       clienteData: normalizedCustomerData,
     });
+
+    await db.collection('carritos').doc(uid).delete();
 
     return res.status(201).json({
       success: true,
