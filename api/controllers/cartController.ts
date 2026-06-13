@@ -38,18 +38,18 @@ async function buildCartItems(requestedItems: RequestedCartItem[]): Promise<Cart
     ([productId, cantidad]) => ({ productId, cantidad }),
   );
 
-  return Promise.all(uniqueItems.map(async ({ productId, cantidad }) => {
+  const cartItems = await Promise.all(uniqueItems.map(async ({ productId, cantidad }) => {
     const snapshot = await db.collection('productos').doc(productId).get();
 
     if (!snapshot.exists) {
-      throw new Error('Uno de los productos ya no esta disponible.');
+      return null;
     }
 
     const product = snapshot.data() ?? {};
     const unidadesDisponibles = Number(product.stock ?? product.units ?? 0);
 
     if (unidadesDisponibles < 1) {
-      throw new Error(`${product.nombre ?? 'Un producto'} esta agotado.`);
+      return null;
     }
 
     return {
@@ -64,6 +64,8 @@ async function buildCartItems(requestedItems: RequestedCartItem[]): Promise<Cart
       unidadesDisponibles,
     };
   }));
+
+  return cartItems.filter((item): item is CartItem => item !== null);
 }
 
 export const getCart = async (req: AuthRequest, res: Response) => {
