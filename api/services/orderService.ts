@@ -43,10 +43,15 @@ export class OrderService {
       throw new Error('Tu carrito esta vacio. Agrega al menos un producto para continuar.');
     }
 
-    const normalizedItems = input.productos.map((item) => ({
-      id: String(item.id || '').trim(),
-      cantidad: Number(item.cantidad),
-    }));
+    const normalizedItems = Array.from(
+      input.productos.reduce((items, item) => {
+        const id = String(item.id || '').trim();
+        const cantidad = Number(item.cantidad);
+        items.set(id, (items.get(id) ?? 0) + cantidad);
+        return items;
+      }, new Map<string, number>()),
+      ([id, cantidad]) => ({ id, cantidad }),
+    );
 
     if (normalizedItems.some((item) => !item.id || !Number.isInteger(item.cantidad) || item.cantidad <= 0)) {
       throw new Error('Revisa las cantidades del carrito e intenta nuevamente.');
@@ -54,8 +59,15 @@ export class OrderService {
 
     const orderItems: OrderItem[] = [];
     let total = 0;
+    const orderRef = db.collection('pedidos').doc();
+    const now = admin.firestore.Timestamp.now();
 
     await db.runTransaction(async (transaction) => {
+      const productUpdates: Array<{
+        productRef: FirebaseFirestore.DocumentReference;
+        nextStock: number;
+      }> = [];
+
       for (const item of normalizedItems) {
         const productRef = db.collection('productos').doc(item.id);
         const productDoc = await transaction.get(productRef);
@@ -85,21 +97,49 @@ export class OrderService {
         });
 
         total += subtotal;
+        productUpdates.push({
+          productRef,
+          nextStock: stock - item.cantidad,
+        });
       }
+
+      productUpdates.forEach(({ productRef, nextStock }) => {
+        transaction.update(productRef, { stock: nextStock });
+      });
+
+      transaction.set(orderRef, {
+        clienteId: input.clienteId,
+        productos: orderItems,
+        total,
+        estado: 'Pendiente',
+        inventarioDescontado: true,
+        clienteData: {
+          nombre: input.clienteData.nombre.trim(),
+          correo: input.clienteData.correo.trim(),
+          telefono: input.clienteData.telefono.trim(),
+          direccion: address,
+        },
+        fechaCreacion: now,
+        fechaActualizacion: now,
+      });
     });
 
-    return OrderDAO.createOrder({
+    return {
+      id: orderRef.id,
       clienteId: input.clienteId,
       productos: orderItems,
       total,
       estado: 'Pendiente',
+      inventarioDescontado: true,
       clienteData: {
         nombre: input.clienteData.nombre.trim(),
         correo: input.clienteData.correo.trim(),
         telefono: input.clienteData.telefono.trim(),
         direccion: address,
       },
-    });
+      fechaCreacion: now,
+      fechaActualizacion: now,
+    };
   }
 
   static async getAdminOrders(): Promise<Order[]> {
@@ -111,10 +151,6 @@ export class OrderService {
   }
 
   static async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order | null> {
-    if (status !== 'Pagado') {
-      return OrderDAO.updateOrderStatus(orderId, status);
-    }
-
     const orderRef = db.collection('pedidos').doc(orderId);
 
     await db.runTransaction(async (transaction) => {
@@ -126,30 +162,47 @@ export class OrderService {
 
       const orderData = orderDoc.data() as Omit<Order, 'id'>;
 
-      if (orderData.estado === 'Pagado') {
+      if (orderData.estado === status) {
         return;
       }
 
-      const productUpdates = [];
+      if (orderData.estado !== 'Pendiente') {
+        throw new Error('Un pedido finalizado no puede cambiar de estado.');
+      }
 
-      for (const item of orderData.productos || []) {
-        const productRef = db.collection('productos').doc(item.productId);
-        const productDoc = await transaction.get(productRef);
+      if (status === 'Pendiente') {
+        return;
+      }
 
-        if (!productDoc.exists) {
-          throw new Error(`Producto no encontrado: ${item.nombre}`);
+      const shouldDeductInventory = status === 'Pagado' && !orderData.inventarioDescontado;
+      const shouldRestoreInventory = status === 'Cancelado' && Boolean(orderData.inventarioDescontado);
+      const productUpdates: Array<{
+        productRef: FirebaseFirestore.DocumentReference;
+        nextStock: number;
+      }> = [];
+
+      if (shouldDeductInventory || shouldRestoreInventory) {
+        for (const item of orderData.productos || []) {
+          const productRef = db.collection('productos').doc(item.productId);
+          const productDoc = await transaction.get(productRef);
+
+          if (!productDoc.exists) {
+            throw new Error(`Producto no encontrado: ${item.nombre}`);
+          }
+
+          const productData = productDoc.data() || {};
+          const currentStock = Number(productData.stock || 0);
+
+          if (shouldDeductInventory && currentStock < item.cantidad) {
+            throw new Error(`No hay suficientes unidades de ${item.nombre}. Revisa el inventario antes de aceptar el pago.`);
+          }
+
+          const nextStock = shouldRestoreInventory
+            ? currentStock + item.cantidad
+            : currentStock - item.cantidad;
+
+          productUpdates.push({ productRef, nextStock });
         }
-
-        const productData = productDoc.data() || {};
-        const currentStock = Number(productData.stock || 0);
-
-        if (currentStock < item.cantidad) {
-          throw new Error(`No hay suficientes unidades de ${item.nombre}. Revisa el inventario antes de aceptar el pago.`);
-        }
-
-        const nextStock = Math.max(0, currentStock - item.cantidad);
-
-        productUpdates.push({ productRef, nextStock });
       }
 
       productUpdates.forEach(({ productRef, nextStock }) => {
@@ -157,7 +210,8 @@ export class OrderService {
       });
 
       transaction.update(orderRef, {
-        estado: 'Pagado',
+        estado: status,
+        inventarioDescontado: status === 'Pagado',
         fechaActualizacion: admin.firestore.Timestamp.now(),
       });
     });

@@ -25,6 +25,7 @@ export interface Order {
   productos: OrderItem[];
   total: number;
   estado: OrderStatus;
+  inventarioDescontado?: boolean;
   clienteData: OrderCustomerData;
   fechaCreacion: admin.firestore.Timestamp;
   fechaActualizacion: admin.firestore.Timestamp;
